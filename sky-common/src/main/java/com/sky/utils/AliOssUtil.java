@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Data
 @AllArgsConstructor
@@ -22,9 +24,9 @@ public class AliOssUtil {
     /**
      * 文件上传
      *
-     * @param bytes
-     * @param objectName
-     * @return
+     * @param bytes      文件字节数组
+     * @param objectName 对象名称（包含路径）
+     * @return 文件访问URL
      */
     public String upload(byte[] bytes, String objectName) {
 
@@ -52,17 +54,31 @@ public class AliOssUtil {
             }
         }
 
-        //文件访问路径规则 https://BucketName.Endpoint/ObjectName
-        StringBuilder stringBuilder = new StringBuilder("https://");
-        stringBuilder
-                .append(bucketName)
-                .append(".")
-                .append(endpoint)
-                .append("/")
-                .append(objectName);
+        // 构建文件访问URL
+        String fileUrl = "https://" + bucketName + "." + endpoint + "/" + objectName;
+        log.info("文件上传到:{}", fileUrl);
 
-        log.info("文件上传到:{}", stringBuilder.toString());
+        return fileUrl;
+    }
 
-        return stringBuilder.toString();
+    /**
+     * 生成按日期分类的文件路径
+     * 例如：2026/03/image.jpg
+     *
+     * @param originalFilename 原始文件名
+     * @return 带日期路径的对象名称
+     */
+    public String buildObjectName(String originalFilename) {
+        // 获取当前日期
+        LocalDate now = LocalDate.now();
+
+        // 格式化日期为年/月
+        String datePath = now.format(DateTimeFormatter.ofPattern("yyyy/MM"));
+
+        // 生成文件名（使用时间戳防止重名）
+        String fileName = System.currentTimeMillis() + "_" + originalFilename;
+
+        // 拼接完整的对象名称（日期路径 + 文件名）
+        return datePath + "/" + fileName;
     }
 }
