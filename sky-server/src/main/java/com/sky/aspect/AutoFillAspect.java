@@ -45,33 +45,54 @@ public class AutoFillAspect {
         //准备赋值的数据
         LocalDateTime now = LocalDateTime.now();
         Long currentId = BaseContext.getCurrentId();
-        //根据当前不同的操作类型，为对应的属性通过反射来赋值
-       if(operationType == OperationType.INSERT){
-           try {
-               Method setCreateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_TIME, LocalDateTime.class);
-               Method setCreateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER, Long.class);
-               Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
-               Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);
+        
+        //判断参数是否为集合类型
+        if (entity instanceof java.util.List) {
+            //如果是集合，需要遍历集合并为每个元素赋值
+            java.util.List<?> list = (java.util.List<?>) entity;
+            for (Object item : list) {
+                fillValue(item, operationType, now, currentId);
+            }
+        } else {
+            //单个实体对象，直接赋值
+            fillValue(entity, operationType, now, currentId);
+        }
+    }
 
-               //通过反射为对象属性赋值
-               setCreateTime.invoke(entity,now);
-               setCreateUser.invoke(entity,currentId);
-               setUpdateTime.invoke(entity,now);
-               setUpdateUser.invoke(entity,currentId);
-           } catch (Exception e) {
-               throw new RuntimeException(e);
-           }
-       }else if(operationType == OperationType.UPDATE){
-           try {
-               Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
-               Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);
+    /**
+     * 通过反射为实体对象的属性赋值
+     * @param entity 实体对象
+     * @param operationType 操作类型
+     * @param now 当前时间
+     * @param currentId 当前用户 ID
+     */
+    private void fillValue(Object entity, OperationType operationType, LocalDateTime now, Long currentId) {
+        if(operationType == OperationType.INSERT){
+            try {
+                Method setCreateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_TIME, LocalDateTime.class);
+                Method setCreateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER, Long.class);
+                Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
+                Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);
 
-               //通过反射为对象属性赋值
-               setUpdateTime.invoke(entity,now);
-               setUpdateUser.invoke(entity,currentId);
-           } catch (Exception e) {
-               throw new RuntimeException(e);
-           }
-       }
+                //通过反射为对象属性赋值
+                setCreateTime.invoke(entity,now);
+                setCreateUser.invoke(entity,currentId);
+                setUpdateTime.invoke(entity,now);
+                setUpdateUser.invoke(entity,currentId);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }else if(operationType == OperationType.UPDATE){
+            try {
+                Method setUpdateTime = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);
+                Method setUpdateUser = entity.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);
+
+                //通过反射为对象属性赋值
+                setUpdateTime.invoke(entity,now);
+                setUpdateUser.invoke(entity,currentId);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,4 +96,80 @@ public class DishServiceImpl implements DishService {
         dishFlavorMapper.deleteBatch(ids);
 
     }
+
+
+    /**
+     * 根据id查询菜品详情，包含口味
+     * @param id
+     * @return
+     */
+    @Override
+    public DishVO getByIdWithFlavor(Long id) {
+        //根据id查询菜品详情
+        Dish dish = dishMapper.getById(id);
+        if(dish == null){
+            throw new DeletionNotAllowedException("菜品不存在");
+        }
+        //根据菜品id查询口味详情
+        List<DishFlavor> flavors = dishFlavorMapper.getByDishId(id);
+        //将菜品详情和口味详情合并到一个VO中
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish, dishVO);
+        dishVO.setFlavors(flavors);
+        return dishVO;
+    }
+
+
+    /**
+     * 更新菜品和对应的口味
+     * @param dishDTO
+     */
+    @Transactional
+    @Override
+    public void updateWithFlavor(DishDTO dishDTO) {
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO, dish);
+        dishMapper.update(dish);
+        //更新菜品关联的口味数据
+        dishFlavorMapper.deleteBatch(Collections.singletonList(dish.getId()));
+        List<DishFlavor> flavors = dishDTO.getFlavors();
+        if(flavors != null && flavors.size() > 0){
+            flavors.forEach(dishFlavor -> dishFlavor.setDishId(dishDTO.getId()));
+            dishFlavorMapper.insertBatch(flavors);
+        }
+    }
+
+    /**
+     * 菜品起售、停售
+     * @param status 菜品状态：1为起售，0为停售
+     * @param id 菜品id
+     * @return
+     */
+    @Override
+    public void startOrStop(Integer status, Long id) {
+        //查询菜品是否存在
+        Dish dish = dishMapper.getById(id);
+        if(dish == null){
+            throw new DeletionNotAllowedException("菜品不存在");
+        }
+        //更新菜品状态
+        dish.setStatus(status);
+        dishMapper.update(dish);
+    }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public List<Dish> list(Long categoryId) {
+        Dish dish = Dish.builder()
+                .categoryId(categoryId)
+                .status(StatusConstant.ENABLE)
+                .build();
+        return dishMapper.list(dish);
+    }
+
+
 }
